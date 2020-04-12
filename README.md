@@ -3,7 +3,7 @@ do white balance in deeparc
 
 ## installation
 ```shell
-pip install git+https://github.com/pureexe/colmap2deeparc
+pip install git+https://github.com/pureexe/deeparc2whitebalance/
 ```
 
 ## usage
