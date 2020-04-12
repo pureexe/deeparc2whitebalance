@@ -3,12 +3,23 @@ import argparse, os, cv2
 import numpy as np 
 import matplotlib.pyplot as plt
 from multiprocessing import Pool
+from timeit import default_timer as timer
 
-def read_exr(image_path):
+def remove_bad_pixel(image, percentile = None):
+    if percentile is not None:
+        _, _,c = image.shape
+        threshold_pixel = np.percentile(image.reshape(-1,c),percentile,axis=0)
+        for i in  range(c):
+            image[:,:,i] = np.clip(image[:,:,i],0,threshold_pixel[i])
+        return image
+    else:
+        return np.clip(image,0,1)
+
+def read_exr(image_path, gamma = 1, percentile = 99):
     image = cv2.imread(image_path,  cv2.IMREAD_ANYCOLOR | cv2.IMREAD_ANYDEPTH)  
     image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
-    image = np.clip(image,0,1) # remove bad pixel above 1 
-    image = np.power(image,1) # gamma correction
+    image = remove_bad_pixel(image,percentile = percentile)
+    image = np.power(image,gamma) # gamma correction
     return image
 
 def read_mask(mask_path):
@@ -19,6 +30,7 @@ def read_mask(mask_path):
 
 def normalize_pixel(image,mask):
     average_pixel = np.average(image[mask],axis=0) 
+    #print(average_pixel) # for debug
     image = image / average_pixel
     image = np.clip(image,0,1) # image should be in [0,1]
     return image
@@ -40,11 +52,13 @@ def get_masks(mask_dir, num_thread = 8):
     return masks 
 
 def apply_mask(packed_data):
-    image = read_exr(packed_data['image_path'])
-    image = normalize_pixel(image,packed_data['mask'])
+    image = read_exr(packed_data['image_path'], packed_data['gamma'], packed_data['percentile'])
+    image = normalize_pixel(image, packed_data['mask'])
+    if packed_data['rotate_image'] == True:
+        image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE);
     plt.imsave(packed_data['output_path'],image)
 
-def apply_masks(input_dir, output_dir, masks, num_thread = 8):
+def apply_masks(input_dir, output_dir, masks, num_thread = 8, rotate_image = True, gamma = 1.0, percentile = 99):
     packed_datas = []
     exr_files = os.listdir(input_dir)
     for exr_file in exr_files:
@@ -53,14 +67,24 @@ def apply_masks(input_dir, output_dir, masks, num_thread = 8):
         packed_datas.append({
             'image_path': os.path.join(input_dir,exr_file),
             'mask': masks[exr_file.split('_')[0]],
-            'output_path': os.path.join(output_dir, exr_file.split('.')[0] + '.png')
+            'output_path': os.path.join(output_dir, exr_file.split('.')[0] + '.png'),
+            'rotate_image': rotate_image,
+            'gamma': gamma,
+            'percentile': percentile
         })
     with Pool(num_thread) as p:
         p.map(apply_mask,packed_datas)
 
 def main(args):
+    start_time = timer()
+    if not os.path.exists(args.output):
+        os.mkdir(args.output)
+    print("using {} threads".format(args.thread))
+    print("reading mask...")
     masks = get_masks(args.reference, args.thread)
-    apply_masks(args.input, args.output, masks, args.thread)
+    print("white balancing...")
+    apply_masks(args.input, args.output, masks, args.thread, args.rotate_image, args.gamma, args.percentile)
+    print("Running finished in {} seconds".format(timer() - start_time))
  
 def entry_point():
     parser = argparse.ArgumentParser(
@@ -69,27 +93,44 @@ def entry_point():
         '-i',
         '--input',
         type=str,
-        default='D:/Datasets/yellow/',
+        required=True,
         help='input exr file directory',
     )
     parser.add_argument(
         '-r',
         '--reference',
         type=str,
-        default='mask/',
+        required=True,
         help='mask to use as reference'
     ) 
     parser.add_argument(
         '-o',
         '--output',
         type=str,
-        default='output/',
+        required= True,
         help='output directory')     
     parser.add_argument(
         '--thread',
         type=int,
         default=8,
-        help='output directory')     
+        help='number of thread to use (default: 8)')
+    parser.add_argument(
+        '--percentile',
+        type=float,
+        default=99.0,
+        help='percentile to remove bad pixel (default: 99.0)')
+    parser.add_argument(
+        '--gamma',
+        type=float,
+        default=1.0,
+        help='gamma value for gamma correction (default: 1.0)')
+    parser.add_argument(
+        '--no-rotate',
+        dest='rotate_image',
+        action='store_false',
+        help='do not rotate the output image'
+    )    
+    parser.set_defaults(rotate_image=True) 
     main(parser.parse_args())
 
 
