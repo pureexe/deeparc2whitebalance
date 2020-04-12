@@ -79,6 +79,8 @@ def main(args):
     start_time = timer()
     if not os.path.exists(args.output):
         os.mkdir(args.output)
+    if not args.use_percentile:
+        args.percentile = None
     print("using {} threads".format(args.thread))
     print("reading mask...")
     masks = get_masks(args.reference, args.thread)
@@ -129,8 +131,15 @@ def entry_point():
         dest='rotate_image',
         action='store_false',
         help='do not rotate the output image'
-    )    
+    )
+    parser.add_argument(
+        '--no-percentile',
+        dest='use_percentile',
+        action='store_false',
+        help='disable percentile to remove pixel and fallback to use clip [0,1]'
+    )        
     parser.set_defaults(rotate_image=True) 
+    parser.set_defaults(use_percentile=True) 
     main(parser.parse_args())
 
 

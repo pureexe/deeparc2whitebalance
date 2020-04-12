@@ -1,6 +1,14 @@
 # deeparc2whitebalance
 do white balance in deeparc
 
-## Prerequirement
-if you are using windows please install open EXR from
-https://www.lfd.uci.edu/~gohlke/pythonlibs/
+## installation
+```shell
+pip install git+https://github.com/pureexe/colmap2deeparc
+```
+
+## usage
+```shell
+deeparc2whitebalance -i <input exr> -r <mask dir> -o <output dir>
+```
+
+For mask, please label with white color on the white position in the image
