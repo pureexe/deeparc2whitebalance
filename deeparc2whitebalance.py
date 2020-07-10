@@ -55,7 +55,7 @@ def apply_mask(packed_data):
     image = read_exr(packed_data['image_path'], packed_data['gamma'], packed_data['percentile'])
     image = normalize_pixel(image, packed_data['mask'])
     if packed_data['rotate_image'] == True:
-        image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE);
+        image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
     plt.imsave(packed_data['output_path'],image)
 
 def apply_masks(input_dir, output_dir, masks, num_thread = 8, rotate_image = True, gamma = 1.0, percentile = 99):
