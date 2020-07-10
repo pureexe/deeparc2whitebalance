@@ -3,7 +3,7 @@ do white balance in deeparc
 
 ## installation
 ```shell
-pip install git+https://github.com/pureexe/colmap2deeparc
+pip install git+https://github.com/pureexe/deeparc2whitebalance/
 ```
 
 ## usage
@@ -11,4 +11,4 @@ pip install git+https://github.com/pureexe/colmap2deeparc
 deeparc2whitebalance -i <input exr> -r <mask dir> -o <output dir>
 ```
 
-For mask, please label with white color on the white position in the image.
+For mask, please label with white color on the white position in the image
